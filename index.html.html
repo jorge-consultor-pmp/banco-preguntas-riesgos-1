@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco de Preguntas - Análisis de Riesgos PMBOK</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .question-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #3B82F6;
+        }
+        .question-card.answered {
+            border-left-color: #10B981;
+        }
+        .question-card.incorrect {
+            border-left-color: #EF4444;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: translateX(4px);
+        }
+        .option-btn.selected {
+            background: #3B82F6;
+            color: white;
+        }
+        .option-btn.correct {
+            background: #10B981;
+            color: white;
+        }
+        .option-btn.incorrect {
+            background: #EF4444;
+            color: white;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="gradient-bg text-white py-8">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold mb-2">
+                    <i class="fas fa-shield-alt mr-3"></i>
+                    Banco de Preguntas: Análisis de Riesgos PMBOK
+                </h1>
+                <p class="text-xl opacity-90">Análisis Cualitativo y Cuantitativo de Riesgos según PMI</p>
+                <div class="mt-4">
+                    <div class="bg-white bg-opacity-20 rounded-full p-4 inline-block">
+                        <span class="text-lg font-semibold" id="score-display">Puntuación: 0/30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700">Progreso del Examen</span>
+                <span class="text-sm font-medium text-gray-700" id="progress-text">0/30</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div class="progress-bar bg-blue-600 h-3 rounded-full" id="progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questions Container -->
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div id="questions-container"></div>
+        
+        <!-- Results Summary -->
+        <div id="results-summary" class="hidden bg-white rounded-lg shadow-lg p-8 mt-8">
+            <div class="text-center">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-chart-bar text-3xl text-blue-600"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Resumen de Resultados</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-green-50 p-6 rounded-lg">
+                        <div class="text-3xl font-bold text-green-600" id="correct-count">0</div>
+                        <div class="text-gray-600">Respuestas Correctas</div>
+                    </div>
+                    <div class="bg-red-50 p-6 rounded-lg">
+                        <div class="text-3xl font-bold text-red-600" id="incorrect-count">0</div>
+                        <div class="text-gray-600">Respuestas Incorrectas</div>
+                    </div>
+                    <div class="bg-blue-50 p-6 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-600" id="percentage">0%</div>
+                        <div class="text-gray-600">Porcentaje Final</div>
+                    </div>
+                </div>
+                <button onclick="resetQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold">
+                    <i class="fas fa-redo mr-2"></i>Reiniciar Examen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                id: 1,
+                question: "¿Cuál es el objetivo principal del proceso 'Realizar el Análisis Cualitativo de Riesgos' según el PMBOK?",
+                options: [
+                    "Calcular el valor monetario esperado de todos los riesgos",
+                    "Evaluar la probabilidad e impacto de los riesgos identificados para priorizarlos",
+                    "Desarrollar estrategias de respuesta a los riesgos",
+                    "Documentar todos los riesgos del proyecto en el registro de riesgos"
+                ],
+                correct: 1,
+                explanation: "El análisis cualitativo de riesgos tiene como objetivo principal evaluar la probabilidad de ocurrencia y el impacto de los riesgos identificados para priorizarlos. Esto se hace típicamente usando escalas relativas y la matriz de probabilidad e impacto."
+            },
+            {
+                id: 2,
+                question: "¿Qué herramienta es considerada fundamental en el proceso de análisis cualitativo de riesgos según PMBOK?",
+                options: [
+                    "Simulación Monte Carlo",
+                    "Análisis de árbol de decisiones",
+                    "Matriz de probabilidad e impacto",
+                    "Análisis de sensibilidad"
+                ],
+                correct: 2,
+                explanation: "La matriz de probabilidad e impacto es la herramienta fundamental del análisis cualitativo de riesgos. Permite clasificar los riesgos según su probabilidad de ocurrencia e impacto en los objetivos del proyecto, facilitando su priorización."
+            },
+            {
+                id: 3,
+                question: "En la matriz de probabilidad e impacto, si un riesgo tiene probabilidad 'Alta' (0.7) e impacto 'Medio' (0.5), ¿cuál sería su puntuación de riesgo?",
+                options: [
+                    "0.35",
+                    "1.2",
+                    "0.2",
+                    "0.7"
+                ],
+                correct: 0,
+                explanation: "La puntuación de riesgo se calcula multiplicando la probabilidad por el impacto: 0.7 × 0.5 = 0.35. Esta puntuación ayuda a determinar la prioridad del riesgo en comparación con otros."
+            },
+            {
+                id: 4,
+                question: "¿Cuál de las siguientes NO es una técnica de recopilación de información para la identificación de riesgos según PMBOK?",
+                options: [
+                    "Lluvia de ideas (Brainstorming)",
+                    "Técnica Delphi",
+                    "Simulación Monte Carlo",
+                    "Entrevistas"
+                ],
+                correct: 2,
+                explanation: "La simulación Monte Carlo es una técnica del análisis cuantitativo de riesgos, no una técnica de recopilación de información para identificación de riesgos. Las otras opciones (brainstorming, Delphi y entrevistas) sí son técnicas de recopilación de información."
+            },
+            {
+                id: 5,
+                question: "¿Qué componente del Plan de Gestión de Riesgos define las escalas de probabilidad e impacto?",
+                options: [
+                    "Metodología",
+                    "Definiciones de probabilidad e impacto",
+                    "Matriz de probabilidad e impacto",
+                    "Tolerancias"
+                ],
+                correct: 1,
+                explanation: "Las 'Definiciones de probabilidad e impacto' es el componente del Plan de Gestión de Riesgos que establece las escalas específicas de probabilidad e impacto que se utilizarán en el proyecto, incluyendo los criterios para cada nivel."
+            },
+            {
+                id: 6,
+                question: "¿Cuál es la principal diferencia entre análisis cualitativo y cuantitativo de riesgos?",
+                options: [
+                    "El cualitativo identifica riesgos, el cuantitativo los elimina",
+                    "El cualitativo usa escalas relativas, el cuantitativo usa valores numéricos precisos",
+                    "El cualitativo es más caro que el cuantitativo",
+                    "El cuantitativo se realiza antes que el cualitativo"
+                ],
+                correct: 1,
+                explanation: "La principal diferencia es que el análisis cualitativo utiliza escalas relativas (alto, medio, bajo) para evaluar probabilidad e impacto, mientras que el análisis cuantitativo utiliza valores numéricos precisos y modelos matemáticos para cuantificar los efectos de los riesgos."
+            },
+            {
+                id: 7,
+                question: "¿Qué técnica del análisis cuantitativo de riesgos utiliza distribuciones de probabilidad para simular posibles resultados del proyecto?",
+                options: [
+                    "Análisis de sensibilidad",
+                    "Análisis de tornado",
+                    "Simulación Monte Carlo",
+                    "Análisis del valor monetario esperado"
+                ],
+                correct: 2,
+                explanation: "La simulación Monte Carlo utiliza distribuciones de probabilidad para generar múltiples escenarios posibles del proyecto, permitiendo analizar el rango de resultados posibles y la probabilidad de lograr objetivos específicos."
+            },
+            {
+                id: 8,
+                question: "En el análisis cuantitativo, ¿qué representa el Valor Monetario Esperado (VME)?",
+                options: [
+                    "El costo máximo posible del proyecto",
+                    "El promedio ponderado de todos los resultados posibles",
+                    "El costo mínimo garantizado del proyecto",
+                    "La diferencia entre el mejor y peor escenario"
+                ],
+                correct: 1,
+                explanation: "El Valor Monetario Esperado (VME) representa el promedio ponderado de todos los posibles resultados monetarios, donde cada resultado se multiplica por su probabilidad de ocurrencia. Es útil para tomar decisiones bajo incertidumbre."
+            },
+            {
+                id: 9,
+                question: "¿Qué información debe registrarse para cada riesgo en el Registro de Riesgos después del análisis cualitativo?",
+                options: [
+                    "Solo la descripción del riesgo",
+                    "Lista de riesgos priorizados, evaluaciones de probabilidad e impacto, y puntuación de riesgo",
+                    "Únicamente las estrategias de respuesta",
+                    "Solo los riesgos de alta prioridad"
+                ],
+                correct: 1,
+                explanation: "Después del análisis cualitativo, el Registro de Riesgos debe actualizarse con la lista de riesgos priorizados, las evaluaciones de probabilidad e impacto, la puntuación de riesgo, y la categorización de riesgos por urgencia."
+            },
+            {
+                id: 10,
+                question: "¿Qué técnica de análisis cuantitativo muestra qué variables tienen mayor impacto en los resultados del proyecto?",
+                options: [
+                    "Simulación Monte Carlo",
+                    "Análisis de sensibilidad",
+                    "Análisis del valor monetario esperado",
+                    "Análisis de escenarios"
+                ],
+                correct: 1,
+                explanation: "El análisis de sensibilidad examina cómo las variaciones en las variables del proyecto afectan los resultados, identificando qué variables tienen el mayor impacto. A menudo se presenta como un diagrama de tornado."
+            },
+            {
+                id: 11,
+                question: "¿Cuál es el propósito principal de la categorización de riesgos en el análisis cualitativo?",
+                options: [
+                    "Eliminar riesgos innecesarios",
+                    "Agrupar riesgos por causas raíz para identificar áreas que requieren atención especial",
+                    "Calcular el costo total de los riesgos",
+                    "Asignar responsables a cada riesgo"
+                ],
+                correct: 1,
+                explanation: "La categorización de riesgos agrupa los riesgos por sus causas raíz comunes, lo que ayuda a identificar áreas del proyecto que requieren atención especial y puede revelar deficiencias en la planificación del proyecto."
+            },
+            {
+                id: 12,
+                question: "¿Qué técnica se utiliza para evaluar la urgencia de los riesgos en el análisis cualitativo?",
+                options: [
+                    "Simulación Monte Carlo",
+                    "Evaluación de urgencia de los riesgos",
+                    "Análisis de árbol de decisiones",
+                    "Análisis de valor ganado"
+                ],
+                correct: 1,
+                explanation: "La evaluación de urgencia de los riesgos es una técnica específica que considera factores como el tiempo disponible para desarrollar una respuesta efectiva, síntomas y señales de advertencia, y la clasificación de urgencia."
+            },
+            {
+                id: 13,
+                question: "En el análisis de árbol de decisiones, ¿qué representan los nodos cuadrados?",
+                options: [
+                    "Eventos inciertos",
+                    "Puntos de decisión",
+                    "Resultados finales",
+                    "Probabilidades"
+                ],
+                correct: 1,
+                explanation: "En un árbol de decisiones, los nodos cuadrados representan puntos de decisión donde el decisor tiene control, mientras que los nodos circulares representan eventos inciertos o de azar."
+            },
+            {
+                id: 14,
+                question: "¿Qué herramienta del análisis cualitativo ayuda a comparar la importancia relativa de las variables?",
+                options: [
+                    "Análisis de tornado",
+                    "Diagrama de causa y efecto",
+                    "Matriz de trazabilidad",
+                    "Gráfico de control"
+                ],
+                correct: 0,
+                explanation: "El análisis de tornado es una representación gráfica del análisis de sensibilidad que muestra qué variables del proyecto tienen mayor impacto en los resultados, ordenadas por su importancia relativa."
+            },
+            {
+                id: 15,
+                question: "¿Cuál de los siguientes NO es un criterio típico para evaluar el impacto de un riesgo según PMBOK?",
+                options: [
+                    "Costo",
+                    "Cronograma",
+                    "Calidad",
+                    "Número de interesados"
+                ],
+                correct: 3,
+                explanation: "Los criterios típicos para evaluar el impacto incluyen costo, cronograma, calidad y alcance. El número de interesados no es un criterio estándar de impacto según PMBOK, aunque los riesgos pueden afectar a los interesados."
+            },
+            {
+                id: 16,
+                question: "¿Qué distribución de probabilidad se utiliza comúnmente en la simulación Monte Carlo para representar la duración de actividades?",
+                options: [
+                    "Distribución normal",
+                    "Distribución triangular",
+                    "Distribución exponencial",
+                    "Distribución uniforme"
+                ],
+                correct: 1,
+                explanation: "La distribución triangular es comúnmente utilizada para representar duraciones de actividades porque requiere solo tres parámetros: optimista, más probable y pesimista, que son fáciles de estimar para los expertos."
+            },
+            {
+                id: 17,
+                question: "¿Cuándo es recomendable realizar análisis cuantitativo de riesgos según PMBOK?",
+                options: [
+                    "En todos los proyectos sin excepción",
+                    "Solo cuando se requiere análisis numérico detallado y se justifica el tiempo/costo adicional",
+                    "Únicamente en proyectos de construcción",
+                    "Solo al final del proyecto"
+                ],
+                correct: 1,
+                explanation: "El análisis cuantitativo no siempre es necesario. Se realiza cuando se requiere un análisis numérico más detallado, cuando la alta dirección lo requiere, o cuando se justifica el tiempo y costo adicional basado en la complejidad e importancia del proyecto."
+            },
+            {
+                id: 18,
+                question: "¿Qué representa el percentil 85 en una distribución de costos del proyecto resultante de una simulación Monte Carlo?",
+                options: [
+                    "El costo mínimo del proyecto",
+                    "El costo que tiene 85% de probabilidad de no ser excedido",
+                    "El costo promedio del proyecto",
+                    "El costo máximo posible"
+                ],
+                correct: 1,
+                explanation: "El percentil 85 representa el valor que tiene 85% de probabilidad de no ser excedido. Es decir, hay 85% de probabilidad de que el costo real sea igual o menor a este valor, y 15% de probabilidad de que sea mayor."
+            },
+            {
+                id: 19,
+                question: "¿Cuál es la principal entrada para el proceso de análisis cualitativo de riesgos?",
+                options: [
+                    "Plan de gestión del cronograma",
+                    "Registro de riesgos con riesgos identificados",
+                    "Estructura de desglose del trabajo",
+                    "Presupuesto del proyecto"
+                ],
+                correct: 1,
+                explanation: "La principal entrada para el análisis cualitativo de riesgos es el Registro de Riesgos actualizado con los riesgos identificados en el proceso anterior de 'Identificar los Riesgos'."
+            },
+            {
+                id: 20,
+                question: "¿Qué factor NO se considera típicamente en la evaluación de la urgencia de los riesgos?",
+                options: [
+                    "Tiempo disponible para desarrollar una respuesta",
+                    "Síntomas y señales de advertencia",
+                    "Costo de implementar la respuesta",
+                    "Proximidad en el tiempo de impacto del riesgo"
+                ],
+                correct: 2,
+                explanation: "El costo de implementar la respuesta no es un factor típico en la evaluación de urgencia. La urgencia se basa en factores temporales como el tiempo disponible para responder, las señales de advertencia y qué tan pronto podría impactar el riesgo."
+            },
+            {
+                id: 21,
+                question: "En el contexto del análisis cuantitativo, ¿qué es una reserva de contingencia?",
+                options: [
+                    "Dinero extra para el equipo del proyecto",
+                    "Cantidad de tiempo o dinero reservada para riesgos conocidos",
+                    "Presupuesto para riesgos desconocidos",
+                    "Fondo para mejoras del proyecto"
+                ],
+                correct: 1,
+                explanation: "La reserva de contingencia es una cantidad específica de tiempo o dinero que se reserva para hacer frente a riesgos identificados y conocidos del proyecto. Se incluye en la línea base del costo y cronograma."
+            },
+            {
+                id: 22,
+                question: "¿Qué técnica de modelado se usa para representar situaciones donde los resultados de decisiones iniciales influyen en decisiones futuras?",
+                options: [
+                    "Análisis de sensibilidad",
+                    "Simulación Monte Carlo",
+                    "Análisis de árbol de decisiones",
+                    "Análisis de valor ganado"
+                ],
+                correct: 2,
+                explanation: "El análisis de árbol de decisiones es especialmente útil para representar secuencias de decisiones donde los resultados de decisiones iniciales proporcionan información que influye en las decisiones futuras."
+            },
+            {
+                id: 23,
+                question: "¿Cuál es el objetivo del análisis de escenarios en la gestión cuantitativa de riesgos?",
+                options: [
+                    "Identificar todos los riesgos posibles",
+                    "Evaluar el impacto de diferentes combinaciones de riesgos",
+                    "Eliminar la incertidumbre del proyecto",
+                    "Calcular el presupuesto base del proyecto"
+                ],
+                correct: 1,
+                explanation: "El análisis de escenarios evalúa diferentes combinaciones de eventos o condiciones para determinar su impacto combinado en los objetivos del proyecto, típicamente considerando escenarios optimistas, pesimistas y más probables."
+            },
+            {
+                id: 24,
+                question: "¿Qué información proporciona una curva S de riesgo resultante de una simulación Monte Carlo?",
+                options: [
+                    "La relación costo-beneficio del proyecto",
+                    "La probabilidad acumulativa de lograr cualquier valor de costo o cronograma",
+                    "La secuencia de actividades críticas",
+                    "El avance físico del proyecto"
+                ],
+                correct: 1,
+                explanation: "Una curva S de riesgo muestra la probabilidad acumulativa de lograr cualquier valor específico de costo o tiempo. Permite visualizar la probabilidad de completar el proyecto dentro de presupuesto y cronograma específicos."
+            },
+            {
+                id: 25,
+                question: "¿Cuál de las siguientes afirmaciones sobre el juicio de expertos en el análisis de riesgos es correcta?",
+                options: [
+                    "Solo se debe usar cuando no hay datos históricos disponibles",
+                    "Es una técnica tanto del análisis cualitativo como cuantitativo",
+                    "Solo es aplicable en proyectos de tecnología",
+                    "Debe evitarse porque introduce sesgo"
+                ],
+                correct: 1,
+                explanation: "El juicio de expertos es una técnica importante tanto en el análisis cualitativo como en el cuantitativo de riesgos. Los expertos pueden proporcionar información valiosa sobre probabilidades, impactos y validar resultados de análisis."
+            },
+            {
+                id: 26,
+                question: "¿Qué representa la línea base de riesgo en un proyecto?",
+                options: [
+                    "El número máximo de riesgos aceptables",
+                    "La suma de todos los valores monetarios esperados de los riesgos identificados",
+                    "El presupuesto total del proyecto",
+                    "El cronograma más optimista del proyecto"
+                ],
+                correct: 1,
+                explanation: "La línea base de riesgo representa la suma de todos los valores monetarios esperados de los riesgos identificados en un momento dado, proporcionando una medida del nivel general de riesgo del proyecto."
+            },
+            {
+                id: 27,
+                question: "¿Cuándo se debe actualizar el análisis cualitativo de riesgos durante el ciclo de vida del proyecto?",
+                options: [
+                    "Solo al inicio del proyecto",
+                    "Regularmente durante todo el proyecto y cuando ocurren cambios significativos",
+                    "Solo cuando se identifican nuevos riesgos",
+                    "Únicamente al final de cada fase"
+                ],
+                correct: 1,
+                explanation: "El análisis cualitativo de riesgos debe actualizarse regularmente durante todo el proyecto, especialmente cuando se identifican nuevos riesgos, cuando ocurren cambios significativos en el proyecto, o cuando se materializa un riesgo."
+            },
+            {
+                id: 28,
+                question: "¿Qué escala es comúnmente utilizada para la probabilidad en el análisis cualitativo de riesgos?",
+                options: [
+                    "1-10",
+                    "0.1, 0.3, 0.5, 0.7, 0.9",
+                    "Muy baja, Baja, Moderada, Alta, Muy alta",
+                    "Todas las anteriores son válidas"
+                ],
+                correct: 3,
+                explanation: "Todas las escalas mencionadas son válidas para el análisis cualitativo. La organización debe definir su escala específica en el Plan de Gestión de Riesgos, ya sea numérica (1-10), de probabilidad (0.1-0.9) o descriptiva (Muy baja-Muy alta)."
+            },
+            {
+                id: 29,
+                question: "¿Cuál es el propósito de realizar tanto análisis cualitativo como cuantitativo en el mismo proyecto?",
+                options: [
+                    "Es obligatorio según PMBOK hacer ambos",
+                    "El cualitativo prioriza riesgos para análisis cuantitativo detallado de los más importantes",
+                    "Son procesos redundantes que proporcionan la misma información",
+                    "El cuantitativo siempre debe hacerse antes que el cualitativo"
+                ],
+                correct: 1,
+                explanation: "El análisis cualitativo ayuda a priorizar todos los riesgos identificados, mientras que el análisis cuantitativo se enfoca en analizar numéricamente los riesgos de mayor prioridad. Trabajar juntos optimiza el tiempo y recursos invertidos en análisis de riesgos."
+            },
+            {
+                id: 30,
+                question: "¿Qué característica distingue a los riesgos residuales de los riesgos secundarios en la gestión de riesgos?",
+                options: [
+                    "Los riesgos residuales son más importantes que los secundarios",
+                    "Los riesgos residuales permanecen después de implementar respuestas, los secundarios surgen como consecuencia directa de implementar respuestas",
+                    "Los riesgos secundarios solo afectan el cronograma",
+                    "No hay diferencia práctica entre ambos tipos"
+                ],
+                correct: 1,
+                explanation: "Los riesgos residuales son aquellos que permanecen después de implementar respuestas a los riesgos, mientras que los riesgos secundarios son nuevos riesgos que surgen como resultado directo de implementar una respuesta a un riesgo. Ambos deben identificarse y gestionarse."
+            }
+        ];
+
+        let currentAnswers = {};
+        let score = 0;
+
+        function initializeQuiz() {
+            const container = document.getElementById('questions-container');
+            
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-card bg-white rounded-lg shadow-lg p-6 mb-6 fade-in';
+                questionDiv.id = `question-${q.id}`;
+                
+                questionDiv.innerHTML = `
+                    <div class="flex items-start mb-4">
+                        <div class="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 flex-shrink-0">
+                            ${q.id}
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 leading-tight">${q.question}</h3>
+                    </div>
+                    <div class="ml-12 space-y-3" id="options-${q.id}">
+                        ${q.options.map((option, optionIndex) => `
+                            <button class="option-btn w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 focus:outline-none focus:border-blue-500" 
+                                    onclick="selectOption(${q.id}, ${optionIndex})" 
+                                    id="option-${q.id}-${optionIndex}">
+                                <span class="font-medium text-gray-700">${String.fromCharCode(65 + optionIndex)}.</span> ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="ml-12 mt-4 hidden" id="explanation-${q.id}">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                <span class="font-semibold text-blue-800">Explicación:</span>
+                            </div>
+                            <p class="text-gray-700">${q.explanation}</p>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(questionDiv);
+            });
+        }
+
+        function selectOption(questionId, optionIndex) {
+            if (currentAnswers[questionId] !== undefined) return; // Already answered
+            
+            const question = questions.find(q => q.id === questionId);
+            currentAnswers[questionId] = optionIndex;
+            
+            const optionsContainer = document.getElementById(`options-${questionId}`);
+            const options = optionsContainer.querySelectorAll('.option-btn');
+            
+            // Disable all options and show correct/incorrect
+            options.forEach((option, index) => {
+                option.disabled = true;
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                } else if (index === optionIndex && index !== question.correct) {
+                    option.classList.add('incorrect');
+                } else if (index === optionIndex) {
+                    option.classList.add('selected');
+                }
+            });
+            
+            // Show explanation
+            document.getElementById(`explanation-${questionId}`).classList.remove('hidden');
+            
+            // Update question card appearance
+            const questionCard = document.getElementById(`question-${questionId}`);
+            if (optionIndex === question.correct) {
+                questionCard.classList.add('answered');
+                score++;
+            } else {
+                questionCard.classList.add('incorrect');
+            }
+            
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const answered = Object.keys(currentAnswers).length;
+            const total = questions.length;
+            const percentage = (answered / total) * 100;
+            
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent = `${answered}/${total}`;
+            document.getElementById('score-display').textContent = `Puntuación: ${score}/${total}`;
+            
+            if (answered === total) {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            const correct = score;
+            const incorrect = questions.length - score;
+            const percentage = Math.round((score / questions.length) * 100);
+            
+            document.getElementById('correct-count').textContent = correct;
+            document.getElementById('incorrect-count').textContent = incorrect;
+            document.getElementById('percentage').textContent = `${percentage}%`;
+            document.getElementById('results-summary').classList.remove('hidden');
+            
+            // Scroll to results
+            document.getElementById('results-summary').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetQuiz() {
+            currentAnswers = {};
+            score = 0;
+            
+            // Reset all questions
+            questions.forEach(q => {
+                const optionsContainer = document.getElementById(`options-${q.id}`);
+                const options = optionsContainer.querySelectorAll('.option-btn');
+                
+                options.forEach(option => {
+                    option.disabled = false;
+                    option.classList.remove('correct', 'incorrect', 'selected');
+                });
+                
+                document.getElementById(`explanation-${q.id}`).classList.add('hidden');
+                const questionCard = document.getElementById(`question-${q.id}`);
+                questionCard.classList.remove('answered', 'incorrect');
+            });
+            
+            // Hide results
+            document.getElementById('results-summary').classList.add('hidden');
+            
+            // Reset progress
+            updateProgress();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize the quiz when page loads
+        document.addEventListener('DOMContentLoaded', initializeQuiz);
+    </script>
+</body>
+</html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDnZcGwF8Gzl2yaZMBeHAgwzmROmDgUQ2q3%2Bm36JPoLAnjZ9GBzchEYEse6rAkUh%2FMPmeSjsdDyxHP%2Fku6c5RRV6UYP%2BZQ%2FxnE%2BbIYYi2%2BklG42n2CShMeUW6eAX6Cen5yhK1Ff1eSWQ9G65X1xrvTlcXZjgx7ipJsj18I%2F3YCEUnCHcR4qxd7mFSDQua3tX3DfJdUd2nxSMP00vCFSeawXMMxYbNkEU5u5ICuYAuR1Xm2WsPfv%2B9iyoL4ElgUW1D%2FQ%2BRe3EXWV%2FjgNCQwrdovC9m5yRb20k4SRS%2BGMnRGnsnfzJRMTRmrSFe9CPo0TAjTBV12jVYugL4djkqEhqvIOiMafCAeOk7sDcig82jq4zBZedNGFSg9AVZt6iST%2FqTPuL9aOR0Mr68VXtdIc8l1l3Oq0lsYTwg7sgf5ri1T9HLRc4t3DyHRQhBa97jLWT96q7A7yKXLSkvC0Cq061bNANZlBRFY9PoDE5gEBz1dt6dtrie21XVBAJ2QPG48BqzkfMnDp52x3HfZFBuYuSCslU%3D";
+        window.__genspark_locale = "es-ES";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDnZcGwF8Gzl2yaZMBeHAgwzmROmDgUQ2q3+m36JPoLAnjZ9GBzchEYEse6rAkUh/MPmeSjsdDyxHP/ku6c5RRV6UYP+ZQ/xnE+bIYYi2+klG42n2CShMeUW6eAX6Cen5yhK1Ff1eSWQ9G65X1xrvTlcXZjgx7ipJsj18I/3YCEUnCHcR4qxd7mFSDQua3tX3DfJdUd2nxSMP00vCFSeawXMMxYbNkEU5u5ICuYAuR1Xm2WsPfv+9iyoL4ElgUW1D/Q+Re3EXWV/jgNCQwrdovC9m5yRb20k4SRS+GMnRGnsnfzJRMTRmrSFe9CPo0TAjTBV12jVYugL4djkqEhqvIOiMafCAeOk7sDcig82jq4zBZedNGFSg9AVZt6iST/qTPuL9aOR0Mr68VXtdIc8l1l3Oq0lsYTwg7sgf5ri1T9HLRc4t3DyHRQhBa97jLWT96q7A7yKXLSkvC0Cq061bNANZlBRFY9PoDE5gEBz1dt6dtrie21XVBAJ2QPG48BqzkfMnDp52x3HfZFBuYuSCslU=";
+    </script>
+    
+        <script id="html_badge_script2" src="https://www.genspark.ai/html_badge.js"></script>
+        
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
